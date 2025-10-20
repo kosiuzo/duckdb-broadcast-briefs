@@ -255,6 +255,9 @@ def summarize(recent: int, config: str):
                     summary = summarizer.summarize(transcript)
 
                     if summary:
+                        # Save to file
+                        file_path = summarizer.save_summary(video_id, summary, title)
+
                         # Update database
                         db.update_summary(video_id, {
                             "summary_md": summary,

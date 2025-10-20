@@ -4,12 +4,13 @@ import logging
 import json
 import time
 from typing import Optional
+from pathlib import Path
 import re
 
 import requests
 
 from dbb.config import Config
-from dbb.utils import read_file
+from dbb.utils import read_file, write_file, ensure_dir_exists, sanitize_filename
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +121,8 @@ class SummarizerManager:
         self.config = config
         self.ollama = OllamaClient(config)
         self.prompt_template = self._load_prompt_template()
+        self.summary_dir = Path(config.summary_dir)
+        ensure_dir_exists(self.summary_dir)
 
     def _load_prompt_template(self) -> str:
         """Load summary prompt template from file."""
@@ -198,3 +201,26 @@ SUMMARY:"""
                 summary = f"# Summary\n\n{summary}"
 
         return summary
+
+    def save_summary(self, video_id: str, summary: str, title: str) -> Path:
+        """
+        Save summary to local file.
+
+        Args:
+            video_id: YouTube video ID
+            summary: Summary text
+            title: Video title (for filename)
+
+        Returns:
+            Path to saved file
+        """
+        # Create filename from video_id and title
+        safe_title = sanitize_filename(title)
+        filename = f"{video_id}_{safe_title}.md"
+        file_path = self.summary_dir / filename
+
+        # Write file
+        write_file(file_path, summary)
+        logger.debug(f"Summary saved to {file_path}")
+
+        return file_path
