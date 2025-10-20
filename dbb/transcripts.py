@@ -65,7 +65,12 @@ class SupadataProvider(TranscriptProvider):
 
         try:
             url = f"{self.config.base_url}?video_id={video_id}"
-            headers = {"Authorization": f"Bearer {api_key}"}
+            # Try both Bearer and X-API-Key header formats
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "X-API-Key": api_key,  # Some APIs use this instead
+            }
+            logger.debug(f"Supadata requesting: {url}")
             response = requests.get(url, headers=headers, timeout=self.config.timeout_s)
             response.raise_for_status()
 
