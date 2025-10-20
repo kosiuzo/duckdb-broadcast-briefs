@@ -134,8 +134,9 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
+# Environments (but keep .env.example as template)
 .env
+!.env.example
 .envrc
 .venv
 env/
@@ -143,6 +144,11 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Local configuration and database
+config.yaml
+*.duckdb
+data/
 
 # Spyder project settings
 .spyderproject

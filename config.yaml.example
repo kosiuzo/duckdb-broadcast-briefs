@@ -1,0 +1,86 @@
+# DuckDB Broadcast Briefs Configuration
+
+# Database & Storage
+db_path: ./dbb.duckdb
+data_dir: ./data
+transcript_dir: ./data/transcripts
+summary_dir: ./data/summaries
+
+# YouTube Channels to Archive
+# You can use either channel_id (all uploads) or playlist_id (specific podcast playlist)
+# For best results with transcripts, use playlist_id to target official podcast playlists
+channels:
+  # Option 1: Fetch from playlist (RECOMMENDED for podcasts)
+  - name: "Lex Fridman Podcast"
+    playlist_id: "PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf"
+
+  # Option 2: Fetch from channel (all uploads)
+  - name: "Naval Ravikant"
+    channel_id: "UCh_dKYwX6tropma1D8DyT5A"
+
+  # You can mix both approaches
+  # - name: "Your Podcast"
+  #   playlist_id: "PLxxxxxxxxxxxx"
+
+# YouTube API Fetching
+fetch:
+  use_youtube_api: true
+  api_key_env: "YOUTUBE_API_KEY"
+  max_per_channel: null  # null = fetch all available
+
+# Transcript Providers (tried in order)
+transcripts_providers:
+  order: ["supadata", "ytio", "socialkit", "youtube_transcript_api"]
+  min_chars: 400  # Sanity check threshold
+
+  supadata:
+    base_url: "https://api.supadata.ai/v1/youtube/transcript"
+    api_key_env: "SUPADATA_API_KEY"
+    timeout_s: 30
+    enabled: true
+
+  ytio:
+    base_url: "https://www.youtube-transcript.io/api"
+    timeout_s: 30
+    enabled: true
+
+  socialkit:
+    base_url: "https://api.socialkit.dev/youtube-transcript"
+    api_key_env: "SOCIALKIT_API_KEY"
+    timeout_s: 30
+    enabled: true
+
+  youtube_transcript_api:
+    enabled: true
+    languages: ["en"]
+    timeout_s: 30
+
+# Summarization via Ollama
+summarize:
+  ollama_host: "http://localhost:11434"
+  ollama_model: "llama3.1:8b"
+  prompt_path: "./prompts/summary_prompt.md"
+  timeout_s: 300
+  retry_attempts: 3
+
+# Email Digest
+email:
+  enabled: true
+  from_name: "DBB Weekly"
+  from_email: "${SMTP_USERNAME}"
+  recipients:
+    - "you@example.com"
+  subject_format: "Your Weekly Podcast Digest ({{ start_date }} – {{ end_date }})"
+
+# SMTP Configuration
+smtp:
+  host: "${SMTP_HOST}"
+  port: "${SMTP_PORT}"
+  use_tls: "${SMTP_USE_TLS}"
+  username: "${SMTP_USERNAME}"
+  password: "${SMTP_PASSWORD}"
+
+# Logging
+logging:
+  level: "INFO"
+  format: "[%(asctime)s] %(levelname)s - %(name)s - %(message)s"
