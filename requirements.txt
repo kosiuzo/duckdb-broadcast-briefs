@@ -1,0 +1,39 @@
+# Core Dependencies
+duckdb>=0.9.0,<1.5.0
+pydantic>=2.0.0,<3.0
+pydantic-settings>=2.0.0,<3.0
+click>=8.1.0
+pyyaml>=6.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+jinja2>=3.1.0
+premailer>=3.10.0
+
+# YouTube & Transcription
+google-api-python-client>=2.100.0
+google-auth-oauthlib>=1.2.0
+google-auth-httplib2>=0.2.0
+youtube-transcript-api>=0.6.0
+
+# HTTP & Async
+httpx>=0.25.0
+
+# CLI & Output
+rich>=13.0.0
+
+# Email
+email-validator>=2.0.0
+
+# Development & Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+ruff>=0.1.0
+mypy>=1.5.0
+types-requests>=2.31.0
+types-pyyaml>=6.0.0
+
+# Note: This project is tested with Python 3.10+
+# For Python 3.9, you may need to adjust some dependencies
