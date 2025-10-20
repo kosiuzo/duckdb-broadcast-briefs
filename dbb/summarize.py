@@ -120,20 +120,49 @@ class SummarizerManager:
         """
         self.config = config
         self.ollama = OllamaClient(config)
-        self.prompt_template = self._load_prompt_template()
+        # Store default template for later use
+        self.default_template = self._load_prompt_template(self.config.summarize.prompt_path)
         self.summary_dir = Path(config.summary_dir)
         ensure_dir_exists(self.summary_dir)
+        # Cache for channel-specific prompts
+        self._channel_prompts = {}
 
-    def _load_prompt_template(self) -> str:
+    def _load_prompt_template(self, prompt_path: str) -> str:
         """Load summary prompt template from file."""
         try:
-            prompt_path = self.config.summarize.prompt_path
             template = read_file(prompt_path)
             logger.info(f"Loaded prompt template from {prompt_path}")
             return template
         except FileNotFoundError:
-            logger.warning(f"Prompt template not found at {self.config.summarize.prompt_path}, using default")
+            logger.warning(f"Prompt template not found at {prompt_path}, using default")
             return self._default_prompt_template()
+
+    def _get_prompt_for_channel(self, channel_name: str) -> str:
+        """
+        Get the appropriate prompt template for a channel.
+
+        Args:
+            channel_name: Name of the YouTube channel
+
+        Returns:
+            Prompt template string
+        """
+        # Check if we have a cached version
+        if channel_name in self._channel_prompts:
+            return self._channel_prompts[channel_name]
+
+        # Check if there's a channel-specific prompt configured
+        if channel_name in self.config.summarize.channel_prompts:
+            prompt_path = self.config.summarize.channel_prompts[channel_name]
+            template = self._load_prompt_template(prompt_path)
+            self._channel_prompts[channel_name] = template
+            logger.info(f"Using channel-specific prompt for '{channel_name}'")
+            return template
+
+        # Fall back to default prompt
+        logger.debug(f"No channel-specific prompt for '{channel_name}', using default")
+        self._channel_prompts[channel_name] = self.default_template
+        return self.default_template
 
     @staticmethod
     def _default_prompt_template() -> str:
@@ -153,12 +182,13 @@ TRANSCRIPT:
 
 SUMMARY:"""
 
-    def summarize(self, transcript: str) -> Optional[str]:
+    def summarize(self, transcript: str, channel_name: str = None) -> Optional[str]:
         """
         Summarize transcript using Ollama.
 
         Args:
             transcript: Full transcript text
+            channel_name: Name of the YouTube channel (for channel-specific prompts)
 
         Returns:
             Markdown summary or None if generation fails
@@ -173,11 +203,17 @@ SUMMARY:"""
             logger.warning(f"Transcript too long ({len(transcript)} chars), truncating to {max_context}")
             transcript = transcript[:max_context] + "...\n[TRANSCRIPT TRUNCATED]"
 
+        # Get appropriate prompt template for this channel
+        if channel_name:
+            prompt_template = self._get_prompt_for_channel(channel_name)
+        else:
+            prompt_template = self.default_template
+
         # Prepare prompt
-        prompt = self.prompt_template.format(transcript=transcript)
+        prompt = prompt_template.format(transcript=transcript)
 
         # Generate summary
-        logger.info("Generating summary via Ollama...")
+        logger.info(f"Generating summary via Ollama{f' for channel: {channel_name}' if channel_name else ''}...")
         summary = self.ollama.generate(prompt)
 
         if summary:

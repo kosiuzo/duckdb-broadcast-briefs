@@ -35,9 +35,13 @@ def main():
 
 
 @main.command()
-@click.option("--config", default="config.yaml", help="Path to configuration file")
+@click.option("--config", default="config.yaml", type=str, help="Path to configuration file [default: config.yaml]")
 def initdb(config: str):
-    """Initialize database with schema."""
+    """Initialize database with schema and directories.
+
+    Creates DuckDB database and required folders before first use.
+    Must be run before other commands.
+    """
     try:
         cfg = load_config(config)
         setup_logging(cfg)
@@ -64,9 +68,13 @@ def initdb(config: str):
 
 
 @main.command()
-@click.option("--config", default="config.yaml", help="Path to configuration file")
+@click.option("--config", default="config.yaml", type=str, help="Path to configuration file [default: config.yaml]")
 def fetch(config: str):
-    """Fetch episodes from YouTube channels."""
+    """Fetch episodes from YouTube channels or playlists.
+
+    Queries YouTube Data API and fetches new episodes from all configured channels.
+    Idempotent - safe to run multiple times (skips existing episodes).
+    """
     try:
         cfg = load_config(config)
         setup_logging(cfg)
@@ -117,10 +125,17 @@ def fetch(config: str):
 
 
 @main.command()
-@click.option("--recent", default=10, help="Number of recent episodes to process")
-@click.option("--config", default="config.yaml", help="Path to configuration file")
+@click.option("--recent", default=10, type=int, help="Number of most recent episodes without transcripts to process [default: 10]")
+@click.option("--config", default="config.yaml", type=str, help="Path to configuration file [default: config.yaml]")
 def transcribe(recent: int, config: str):
-    """Fetch transcripts for episodes."""
+    """Fetch transcripts for episodes without transcripts.
+
+    Uses configured transcript providers in failover order:
+    1. Supadata (paid, most reliable)
+    2. YouTube-transcript.io (free)
+    3. SocialKit (paid)
+    4. youtube-transcript-api (free, fallback)
+    """
     try:
         cfg = load_config(config)
         setup_logging(cfg)
@@ -211,10 +226,15 @@ def transcribe(recent: int, config: str):
 
 
 @main.command()
-@click.option("--recent", default=10, help="Number of recent episodes to process")
-@click.option("--config", default="config.yaml", help="Path to configuration file")
+@click.option("--recent", default=10, type=int, help="Number of most recent episodes with transcripts but no summaries to process [default: 10]")
+@click.option("--config", default="config.yaml", type=str, help="Path to configuration file [default: config.yaml]")
 def summarize(recent: int, config: str):
-    """Generate summaries for episodes with transcripts."""
+    """Generate summaries for episodes with transcripts.
+
+    Sends transcripts to local Ollama LLM with channel-specific prompts.
+    Requires Ollama to be running: ollama serve
+    Uses channel-specific prompts if configured, otherwise uses default prompt.
+    """
     try:
         cfg = load_config(config)
         setup_logging(cfg)
@@ -249,10 +269,11 @@ def summarize(recent: int, config: str):
                 video_id = episode["video_id"]
                 title = episode["title"]
                 transcript = episode["transcript_md"]
+                channel_title = episode["channel_title"]
 
                 try:
-                    # Generate summary
-                    summary = summarizer.summarize(transcript)
+                    # Generate summary (with channel-specific prompt if available)
+                    summary = summarizer.summarize(transcript, channel_name=channel_title)
 
                     if summary:
                         # Save to file
@@ -291,10 +312,15 @@ def summarize(recent: int, config: str):
 
 
 @main.command()
-@click.option("--send", is_flag=True, help="Send email digest")
-@click.option("--config", default="config.yaml", help="Path to configuration file")
+@click.option("--send", is_flag=True, help="Actually send emails; without flag, only previews are generated")
+@click.option("--config", default="config.yaml", type=str, help="Path to configuration file [default: config.yaml]")
 def digest(send: bool, config: str):
-    """Generate weekly digest."""
+    """Generate weekly digest of episodes summarized in the past 7 days.
+
+    Renders beautiful HTML and plaintext digests grouped by channel.
+    Without --send flag: generates digest_preview.html and digest_preview.txt only.
+    With --send flag: sends separate email per channel to configured recipients.
+    """
     try:
         cfg = load_config(config)
         setup_logging(cfg)
@@ -315,26 +341,71 @@ def digest(send: bool, config: str):
 
         console.print(f"Found {len(episodes)} episodes from past 7 days")
 
-        # Render digest
+        # Initialize renderer and sender
         renderer = DigestRenderer(cfg)
+        sender = DigestSender(cfg) if send else None
         now = datetime.now()
         start_date = now - timedelta(days=7)
         date_range = (start_date, now)
 
-        html_content, text_content = renderer.render_digest(episodes, date_range)
+        # Check if we should send separate emails per channel
+        send_separate = cfg.email.send_separate_emails and send
 
-        # Save previews
-        save_digest_previews(html_content, text_content)
-        console.print("[green]✓ Digest previews saved[/green]")
+        if send_separate:
+            # Send separate email for each channel
+            console.print("[cyan]Sending separate emails per channel...[/cyan]")
+            from collections import defaultdict
 
-        # Send email if requested
-        if send:
-            sender = DigestSender(cfg)
-            subject = f"Your Weekly Podcast Digest ({start_date.strftime('%Y-%m-%d')} – {now.strftime('%Y-%m-%d')})"
-            if sender.send_digest(html_content, text_content, subject):
-                console.print("[green]✓ Digest sent via email[/green]")
-            else:
-                console.print("[yellow]⚠ Failed to send digest (see logs)[/yellow]")
+            episodes_by_channel = defaultdict(list)
+            for episode in episodes:
+                channel = episode.get("channel_title", "Unknown")
+                episodes_by_channel[channel].append(episode)
+
+            sent_count = 0
+            failed_count = 0
+
+            for channel, channel_episodes in episodes_by_channel.items():
+                console.print(f"  Processing {channel}... ({len(channel_episodes)} episodes)")
+
+                # Render channel-specific digest
+                html_content, text_content = renderer.render_channel_digest(
+                    channel_episodes, channel, date_range
+                )
+
+                # Determine recipients for this channel
+                recipients = cfg.email.channel_recipients.get(channel, cfg.email.recipients)
+                if not recipients:
+                    console.print(f"  [yellow]⚠ No recipients configured for {channel}, skipping[/yellow]")
+                    continue
+
+                # Generate subject line
+                subject = f"{channel} Weekly Digest ({start_date.strftime('%Y-%m-%d')} – {now.strftime('%Y-%m-%d')})"
+
+                # Send email
+                if sender.send_digest(html_content, text_content, subject, recipients=recipients):
+                    console.print(f"  [green]✓ Sent to {len(recipients)} recipient(s)[/green]")
+                    sent_count += 1
+                else:
+                    console.print(f"  [yellow]⚠ Failed to send[/yellow]")
+                    failed_count += 1
+
+            console.print(f"[green]✓ Sent {sent_count} email(s), {failed_count} failed[/green]")
+
+        else:
+            # Original combined digest behavior
+            html_content, text_content = renderer.render_digest(episodes, date_range)
+
+            # Save previews
+            save_digest_previews(html_content, text_content)
+            console.print("[green]✓ Digest previews saved[/green]")
+
+            # Send combined email if requested
+            if send:
+                subject = f"Your Weekly Podcast Digest ({start_date.strftime('%Y-%m-%d')} – {now.strftime('%Y-%m-%d')})"
+                if sender.send_digest(html_content, text_content, subject):
+                    console.print("[green]✓ Combined digest sent via email[/green]")
+                else:
+                    console.print("[yellow]⚠ Failed to send digest (see logs)[/yellow]")
 
         db.close()
         console.print("[green]✓ Digest generation complete[/green]")
@@ -438,9 +509,14 @@ def purgе(dry_run: bool, config: str):
 
 
 @main.command()
-@click.option("--config", default="config.yaml", help="Path to configuration file")
+@click.option("--config", default="config.yaml", type=str, help="Path to configuration file [default: config.yaml]")
 def status(config: str):
-    """Show database statistics."""
+    """Show database statistics including per-channel breakdown.
+
+    Displays:
+    - Overall statistics: total episodes, transcripts, summaries with percentages
+    - Per-channel breakdown: episodes, transcripts, summaries, completion percentages
+    """
     try:
         cfg = load_config(config)
         setup_logging(cfg)
@@ -452,27 +528,65 @@ def status(config: str):
         # Get stats
         stats = db.get_stats()
 
-        # Display results
-        table = Table(title="Database Statistics")
-        table.add_column("Metric", style="cyan")
-        table.add_column("Value", style="magenta")
+        # Display overall statistics
+        overall_table = Table(title="📊 Overall Database Statistics", show_header=True, header_style="bold cyan")
+        overall_table.add_column("Metric", style="cyan")
+        overall_table.add_column("Count", style="magenta")
 
-        table.add_row("Total episodes", str(stats["total_episodes"]))
-        table.add_row("With transcripts", str(stats["episodes_with_transcripts"]))
-        table.add_row("With summaries", str(stats["episodes_with_summaries"]))
+        total = stats["total_episodes"]
+        with_transcripts = stats["episodes_with_transcripts"]
+        with_summaries = stats["episodes_with_summaries"]
 
-        console.print(table)
+        overall_table.add_row("📺 Total Episodes", str(total))
+        overall_table.add_row(f"📄 With Transcripts", f"{with_transcripts} ({100*with_transcripts//total if total else 0}%)")
+        overall_table.add_row(f"✍️  With Summaries", f"{with_summaries} ({100*with_summaries//total if total else 0}%)")
 
-        # Channel breakdown
-        if stats["episodes_by_channel"]:
-            channel_table = Table(title="Episodes by Channel")
+        console.print(overall_table)
+
+        # Channel breakdown with per-channel statistics
+        if stats["by_channel"]:
+            channel_table = Table(title="📚 Statistics by Channel", show_header=True, header_style="bold cyan")
             channel_table.add_column("Channel", style="cyan")
-            channel_table.add_column("Count", style="magenta")
+            channel_table.add_column("Episodes", justify="right", style="magenta")
+            channel_table.add_column("Transcripts", justify="right", style="yellow")
+            channel_table.add_column("Summaries", justify="right", style="green")
 
-            for channel, count in stats["episodes_by_channel"].items():
-                channel_table.add_row(channel, str(count))
+            for channel_stats in stats["by_channel"]:
+                channel = channel_stats["channel"]
+                episodes = channel_stats["episodes"]
+                transcripts = channel_stats["transcripts"]
+                summaries = channel_stats["summaries"]
+
+                # Create progress indicators
+                transcript_pct = f"{transcripts}/{episodes}" if episodes > 0 else "0/0"
+                summary_pct = f"{summaries}/{episodes}" if episodes > 0 else "0/0"
+
+                channel_table.add_row(
+                    channel,
+                    str(episodes),
+                    transcript_pct,
+                    summary_pct
+                )
 
             console.print(channel_table)
+
+            # Add completion summary
+            console.print("\n")
+            for channel_stats in stats["by_channel"]:
+                channel = channel_stats["channel"]
+                episodes = channel_stats["episodes"]
+                transcripts = channel_stats["transcripts"]
+                summaries = channel_stats["summaries"]
+
+                if episodes > 0:
+                    transcript_pct = (100 * transcripts) // episodes
+                    summary_pct = (100 * summaries) // episodes
+
+                    status_line = f"[cyan]{channel}[/cyan]: "
+                    status_line += f"[yellow]{transcript_pct}% transcribed[/yellow], "
+                    status_line += f"[green]{summary_pct}% summarized[/green]"
+
+                    console.print(status_line)
 
         db.close()
 

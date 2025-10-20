@@ -71,6 +71,7 @@ class YouTubeClient:
             List of video metadata dictionaries
         """
         videos = []
+        skipped_private = 0
         next_page_token = None
         page_count = 0
 
@@ -87,10 +88,17 @@ class YouTubeClient:
                 for item in response.get("items", []):
                     snippet = item["snippet"]
                     video_id = snippet["resourceId"]["videoId"]
+                    title = snippet["title"]
+
+                    # Skip private videos
+                    if title == "Private video":
+                        logger.debug(f"Skipping private video: {video_id}")
+                        skipped_private += 1
+                        continue
 
                     video_data = {
                         "video_id": video_id,
-                        "title": snippet["title"],
+                        "title": title,
                         "channel_id": snippet["channelId"],
                         "channel_title": snippet["channelTitle"],
                         "published_at": snippet["publishedAt"],
@@ -108,9 +116,12 @@ class YouTubeClient:
                 if not next_page_token:
                     break
 
-                logger.debug(f"Fetched page {page_count} ({len(videos)} total videos)")
+                logger.debug(f"Fetched page {page_count} ({len(videos)} total videos, {skipped_private} private skipped)")
 
-            logger.info(f"Fetched {len(videos)} videos from playlist {playlist_id}")
+            if skipped_private > 0:
+                logger.info(f"Fetched {len(videos)} videos from playlist {playlist_id} (skipped {skipped_private} private video(s))")
+            else:
+                logger.info(f"Fetched {len(videos)} videos from playlist {playlist_id}")
             return videos
 
         except HttpError as e:

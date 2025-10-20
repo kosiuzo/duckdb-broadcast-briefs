@@ -59,7 +59,12 @@ transcripts_providers:
 summarize:
   ollama_host: "http://localhost:11434"
   ollama_model: "llama3.1:8b"
-  prompt_path: "./prompts/summary_prompt.md"
+  prompt_path: "./prompts/default_prompt.md"  # Default prompt for channels without specific configuration
+  # Channel-specific prompts: Create custom prompts for specific channels (key must match channel_title)
+  channel_prompts:
+    # Example:
+    # "How I AI": "./prompts/how_i_ai_prompt.md"
+    # "The AI Daily Brief": "./prompts/ai_daily_brief_prompt.md"
   timeout_s: 300
   retry_attempts: 3
 
@@ -69,8 +74,19 @@ email:
   from_name: "DBB Weekly"
   from_email: "${SMTP_USERNAME}"
   recipients:
-    - "you@example.com"
+    - "you@example.com"  # Default recipients (used as fallback or for combined digest)
   subject_format: "Your Weekly Podcast Digest ({{ start_date }} – {{ end_date }})"
+
+  # Send separate email for each channel (true) or combined digest (false)
+  send_separate_emails: true
+
+  # Channel-specific recipients (optional)
+  # Key must match channel_title exactly from database
+  # Leave empty or remove this section to use default recipients for all channels
+  channel_recipients:
+    # Example:
+    # "Channel Name": ["recipient1@example.com", "recipient2@example.com"]
+    # "Another Channel": ["recipient3@example.com"]
 
 # SMTP Configuration
 smtp:

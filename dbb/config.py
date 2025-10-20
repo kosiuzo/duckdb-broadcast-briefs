@@ -74,7 +74,11 @@ class SummarizeConfig(BaseModel):
     """Ollama summarization configuration."""
     ollama_host: str = Field(default="http://localhost:11434", description="Ollama server host")
     ollama_model: str = Field(default="llama3.1:8b", description="Ollama model to use")
-    prompt_path: str = Field(default="./prompts/summary_prompt.md", description="Path to summary prompt template")
+    prompt_path: str = Field(default="./prompts/default_prompt.md", description="Path to default summary prompt template")
+    channel_prompts: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Channel-specific prompt paths (key=channel_name, value=prompt_path)"
+    )
     timeout_s: int = Field(default=300, description="Request timeout in seconds")
     retry_attempts: int = Field(default=3, description="Number of retry attempts")
 
@@ -84,10 +88,18 @@ class EmailConfig(BaseModel):
     enabled: bool = Field(default=True, description="Enable email sending")
     from_name: str = Field(default="DBB Weekly", description="Sender display name")
     from_email: str = Field(default="", description="Sender email address")
-    recipients: List[str] = Field(default_factory=list, description="Email recipients")
+    recipients: List[str] = Field(default_factory=list, description="Default email recipients for all channels")
     subject_format: str = Field(
         default="Your Weekly Podcast Digest ({{ start_date }} – {{ end_date }})",
         description="Email subject template"
+    )
+    channel_recipients: Dict[str, List[str]] = Field(
+        default_factory=dict,
+        description="Channel-specific email recipients (key=channel_name, value=list of emails)"
+    )
+    send_separate_emails: bool = Field(
+        default=True,
+        description="Send separate email for each channel instead of combined digest"
     )
 
 

@@ -335,10 +335,10 @@ class DatabaseManager:
 
     def get_stats(self) -> Dict[str, Any]:
         """
-        Get database statistics.
+        Get database statistics including per-channel breakdown.
 
         Returns:
-            Dictionary with stats
+            Dictionary with comprehensive statistics
         """
         if not self.connection:
             self.connect()
@@ -361,10 +361,31 @@ class DatabaseManager:
         ).fetchall()
         stats["episodes_with_summaries"] = result[0][0]
 
-        # Episodes by channel
+        # Per-channel statistics (episodes, transcripts, summaries)
         result = self.connection.execute(
-            "SELECT channel_title, COUNT(*) FROM episodes GROUP BY channel_title ORDER BY COUNT(*) DESC"
+            """
+            SELECT
+                channel_title,
+                COUNT(*) as total_episodes,
+                SUM(CASE WHEN transcript_md IS NOT NULL THEN 1 ELSE 0 END) as with_transcripts,
+                SUM(CASE WHEN summary_md IS NOT NULL THEN 1 ELSE 0 END) as with_summaries
+            FROM episodes
+            GROUP BY channel_title
+            ORDER BY COUNT(*) DESC
+            """
         ).fetchall()
+
+        stats["by_channel"] = [
+            {
+                "channel": row[0],
+                "episodes": row[1],
+                "transcripts": row[2] if row[2] else 0,
+                "summaries": row[3] if row[3] else 0,
+            }
+            for row in result
+        ]
+
+        # Legacy format for backward compatibility
         stats["episodes_by_channel"] = {row[0]: row[1] for row in result}
 
         return stats

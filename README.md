@@ -250,85 +250,255 @@ source venv/bin/activate  # macOS/Linux
 # or
 venv\Scripts\activate     # Windows
 
-# Then run any yt command:
+# Then run any dbb command:
 dbb initdb
 dbb fetch
 dbb transcribe
 # etc...
 ```
 
+### Global Options
+
+All commands support:
+- `--help` - Show help message and exit
+- `--config TEXT` - Path to configuration file (default: `config.yaml`)
+
 ### `dbb initdb`
 Initialize database with schema and directories.
 
+**Purpose**: Set up the database and required directories before first use. Must be run before other commands.
+
+**Usage**:
 ```bash
 dbb initdb
+dbb initdb --config /path/to/config.yaml
 ```
 
-### `dbb fetch`
-Fetch latest episodes from all configured channels.
+**Options**:
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--config` | TEXT | `config.yaml` | Path to configuration file |
 
+**Output**:
+- Creates DuckDB database at configured path (default: `./dbb.duckdb`)
+- Creates directories: `data/transcripts/`, `data/summaries/`
+- Initializes episodes table with schema and indexes
+
+**Example**:
 ```bash
+# Initialize with default config
+dbb initdb
+
+# Initialize with custom config
+dbb initdb --config production.yaml
+```
+
+---
+
+### `dbb fetch`
+Fetch latest episodes from all configured channels or playlists.
+
+**Purpose**: Query YouTube Data API and fetch new episodes. Idempotent - safe to run multiple times.
+
+**Usage**:
+```bash
+dbb fetch
 dbb fetch --config config.yaml
 ```
 
-Options:
-- `--config` - Path to config file (default: `config.yaml`)
+**Options**:
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--config` | TEXT | `config.yaml` | Path to configuration file |
+
+**Fetches**:
+- All configured channels or playlists from `config.yaml`
+- Respects `max_per_channel` setting for API quota management
+- Skips episodes already in database (idempotent)
+
+**Example**:
+```bash
+# Fetch from all configured channels
+dbb fetch
+
+# Fetch with custom config file
+dbb fetch --config ~/configs/production.yaml
+
+# Fetch and check status (then run)
+dbb fetch && dbb status
+```
+
+---
 
 ### `dbb transcribe`
 Fetch transcripts for episodes without transcripts.
 
+**Purpose**: Query configured transcript providers in order (failover chain). Tries providers until one succeeds.
+
+**Usage**:
 ```bash
 dbb transcribe --recent 10
+dbb transcribe --recent 5 --config config.yaml
 ```
 
-Options:
-- `--recent N` - Process N most recent episodes (default: 10)
-- `--config` - Path to config file
+**Options**:
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--recent` | INTEGER | `10` | Number of most recent episodes without transcripts to process |
+| `--config` | TEXT | `config.yaml` | Path to configuration file |
+
+**Provider Failover Chain** (configured in `config.yaml`):
+1. Supadata (paid, most reliable)
+2. YouTube-transcript.io (free)
+3. SocialKit (paid)
+4. youtube-transcript-api (free, fallback)
+
+**Example**:
+```bash
+# Transcribe 10 most recent episodes
+dbb transcribe
+
+# Transcribe 5 most recent episodes
+dbb transcribe --recent 5
+
+# Transcribe all episodes without transcripts (be careful with API limits)
+dbb transcribe --recent 100
+
+# Custom config
+dbb transcribe --recent 20 --config ~/configs/testing.yaml
+```
+
+---
 
 ### `dbb summarize`
 Generate summaries for episodes with transcripts but no summaries.
 
+**Purpose**: Send transcripts to Ollama with channel-specific prompts. Uses local LLM (no cloud).
+
+**Usage**:
 ```bash
 dbb summarize --recent 10
+dbb summarize --recent 5 --config config.yaml
 ```
 
-Options:
-- `--recent N` - Process N most recent episodes (default: 10)
-- `--config` - Path to config file
+**Options**:
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--recent` | INTEGER | `10` | Number of most recent episodes with transcripts but no summaries to process |
+| `--config` | TEXT | `config.yaml` | Path to configuration file |
+
+**Requirements**:
+- Ollama must be running: `ollama serve`
+- Model must be available: `ollama list`
+- Configured in `config.yaml` and `.env`
+
+**Channel-Specific Prompts**:
+- Uses channel-specific prompts from `config.yaml` if configured
+- Falls back to default prompt if channel not explicitly configured
+- Prompts are Jinja2 templates with transcript context
+
+**Example**:
+```bash
+# Summarize 10 most recent episodes (requires Ollama running)
+ollama serve &
+dbb summarize
+
+# Summarize 5 specific episodes
+dbb summarize --recent 5
+
+# Summarize with custom config
+dbb summarize --recent 20 --config ~/configs/production.yaml
+
+# Check which episodes need summaries first
+dbb status
+```
+
+---
 
 ### `dbb digest`
 Generate weekly digest of episodes summarized in the past 7 days.
 
+**Purpose**: Render beautiful HTML/text digests grouped by channel and optionally send via email.
+
+**Usage**:
 ```bash
+dbb digest
+dbb digest --send
+dbb digest --send --config config.yaml
+```
+
+**Options**:
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--send` | FLAG | `false` | Actually send emails; without flag, only previews are generated |
+| `--config` | TEXT | `config.yaml` | Path to configuration file |
+
+**Output Files** (when `--send` not used):
+- `digest_preview.html` - HTML preview of digest
+- `digest_preview.txt` - Plaintext preview of digest
+
+**Email Configuration**:
+- Uses `config.yaml` email settings
+- If `send_separate_emails: true`: sends one email per channel to channel-specific recipients
+- If `send_separate_emails: false`: sends combined digest to default recipients
+- Uses channel-specific HTML/plaintext templates with CSS inlining
+
+**Example**:
+```bash
+# Generate previews (no email sent)
+dbb digest
+
+# Preview digest
+cat digest_preview.html
+
+# Send emails to configured recipients
+dbb digest --send
+
+# Generate and send with custom config
+dbb digest --send --config ~/configs/production.yaml
+
+# Check status before sending
+dbb status
+dbb digest
+# Review digest_preview.html
 dbb digest --send
 ```
 
-Options:
-- `--send` - Actually send the email (without flag, only previews are generated)
-- `--config` - Path to config file
-
-Outputs:
-- `digest_preview.html` - HTML preview
-- `digest_preview.txt` - Text preview
-
-### `dbb purge`
-Delete transcript files (database retains full transcripts).
-
-```bash
-dbb purge --dry-run
-```
-
-Options:
-- `--dry-run` - Show what would be deleted without actually deleting
-- `--config` - Path to config file
-
-**Note**: Always runs checksum verification before deletion.
+---
 
 ### `dbb status`
-Show database statistics.
+Show database statistics including per-channel breakdown.
 
+**Purpose**: Display comprehensive statistics about episodes, transcripts, and summaries.
+
+**Usage**:
 ```bash
 dbb status
+dbb status --config config.yaml
+```
+
+**Options**:
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--config` | TEXT | `config.yaml` | Path to configuration file |
+
+**Output**:
+- **Overall Statistics**: Total episodes, transcripts, summaries with percentages
+- **Per-Channel Breakdown**: Episodes, transcripts, summaries, and completion percentages for each channel
+- **Completion Metrics**: Visual indicators of progress
+
+**Example**:
+```bash
+# Show all statistics
+dbb status
+
+# With custom config
+dbb status --config ~/configs/testing.yaml
+
+# Monitor progress during bulk operations
+dbb status
+dbb transcribe --recent 20
+dbb status  # Check progress
 ```
 
 ## Database Schema
