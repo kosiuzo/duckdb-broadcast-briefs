@@ -58,9 +58,10 @@ class SupadataProvider(TranscriptProvider):
         if not self.config.enabled:
             raise TranscriptUnavailableError("Supadata provider disabled")
 
-        api_key = self.config.api_key_env and self._get_api_key()
+        # Get API key from environment
+        api_key = self._get_api_key() if self.config.api_key_env else None
         if not api_key:
-            raise TranscriptUnavailableError("Supadata API key not configured")
+            raise TranscriptUnavailableError(f"Supadata API key not configured (env var: {self.config.api_key_env})")
 
         try:
             url = f"{self.config.base_url}?video_id={video_id}"
@@ -87,7 +88,12 @@ class SupadataProvider(TranscriptProvider):
         """Get API key from environment."""
         import os
         if self.config.api_key_env:
-            return os.getenv(self.config.api_key_env, "")
+            key = os.getenv(self.config.api_key_env, "")
+            if key:
+                logger.debug(f"Supadata API key found from {self.config.api_key_env}")
+            else:
+                logger.debug(f"Supadata API key env var {self.config.api_key_env} is empty")
+            return key
         return ""
 
 
@@ -133,9 +139,10 @@ class SocialKitProvider(TranscriptProvider):
         if not self.config.enabled:
             raise TranscriptUnavailableError("SocialKit provider disabled")
 
-        api_key = self.config.api_key_env and self._get_api_key()
+        # Get API key from environment
+        api_key = self._get_api_key() if self.config.api_key_env else None
         if not api_key:
-            raise TranscriptUnavailableError("SocialKit API key not configured")
+            raise TranscriptUnavailableError(f"SocialKit API key not configured (env var: {self.config.api_key_env})")
 
         try:
             url = f"{self.config.base_url}?video_id={video_id}"
@@ -162,7 +169,12 @@ class SocialKitProvider(TranscriptProvider):
         """Get API key from environment."""
         import os
         if self.config.api_key_env:
-            return os.getenv(self.config.api_key_env, "")
+            key = os.getenv(self.config.api_key_env, "")
+            if key:
+                logger.debug(f"SocialKit API key found from {self.config.api_key_env}")
+            else:
+                logger.debug(f"SocialKit API key env var {self.config.api_key_env} is empty")
+            return key
         return ""
 
 

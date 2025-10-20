@@ -143,6 +143,7 @@ def transcribe(recent: int, config: str):
         # Process each episode
         success = 0
         failed = 0
+        skipped = 0
 
         with Progress() as progress:
             task = progress.add_task("[cyan]Processing episodes...", total=len(episodes))
@@ -150,6 +151,13 @@ def transcribe(recent: int, config: str):
             for episode in episodes:
                 video_id = episode["video_id"]
                 title = episode["title"]
+
+                # Skip private videos
+                if "private video" in title.lower():
+                    logger.info(f"Skipping private video: {title}")
+                    skipped += 1
+                    progress.update(task, advance=1)
+                    continue
 
                 try:
                     # Fetch transcript
@@ -190,6 +198,7 @@ def transcribe(recent: int, config: str):
         table.add_column("Count", style="magenta")
         table.add_row("Successful", str(success))
         table.add_row("Failed", str(failed))
+        table.add_row("Skipped (private)", str(skipped))
         console.print(table)
 
         db.close()
