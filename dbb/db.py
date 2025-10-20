@@ -127,7 +127,7 @@ class DatabaseManager:
 
         # Check if episode already exists
         result = self.connection.execute(
-            "SELECT COUNT(*) as cnt FROM episodes WHERE video_id = ?",
+            "SELECT COUNT(*) as cnt FROM episodes WHERE video_id = $1",
             [episode_data["video_id"]]
         ).fetchall()
 
@@ -141,7 +141,7 @@ class DatabaseManager:
                 video_id, channel_id, channel_title, title, url,
                 published_at, fetched_at, updated_at,
                 transcript_on_disk
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         """, [
             episode_data.get("video_id"),
             episode_data.get("channel_id"),
@@ -170,15 +170,15 @@ class DatabaseManager:
 
         self.connection.execute("""
             UPDATE episodes SET
-                transcript_md = ?,
-                transcript_provider = ?,
-                transcript_language = ?,
-                transcript_checksum = ?,
-                transcript_length = ?,
-                transcript_path = ?,
-                transcript_on_disk = ?,
-                updated_at = ?
-            WHERE video_id = ?
+                transcript_md = $1,
+                transcript_provider = $2,
+                transcript_language = $3,
+                transcript_checksum = $4,
+                transcript_length = $5,
+                transcript_path = $6,
+                transcript_on_disk = $7,
+                updated_at = $8
+            WHERE video_id = $9
         """, [
             transcript_data.get("transcript_md"),
             transcript_data.get("provider"),
@@ -206,11 +206,11 @@ class DatabaseManager:
 
         self.connection.execute("""
             UPDATE episodes SET
-                summary_md = ?,
-                summary_model = ?,
-                summary_created_at = ?,
-                updated_at = ?
-            WHERE video_id = ?
+                summary_md = $1,
+                summary_model = $2,
+                summary_created_at = $3,
+                updated_at = $4
+            WHERE video_id = $5
         """, [
             summary_data.get("summary_md"),
             summary_data.get("model"),
@@ -239,7 +239,7 @@ class DatabaseManager:
             FROM episodes
             WHERE transcript_md IS NULL
             ORDER BY COALESCE(published_at, fetched_at) DESC
-            LIMIT ?
+            LIMIT $1
         """, [limit]).fetchall()
 
         columns = ["video_id", "url", "title", "channel_title"]
@@ -263,7 +263,7 @@ class DatabaseManager:
             FROM episodes
             WHERE transcript_md IS NOT NULL AND summary_md IS NULL
             ORDER BY COALESCE(published_at, fetched_at) DESC
-            LIMIT ?
+            LIMIT $1
         """, [limit]).fetchall()
 
         columns = ["video_id", "title", "channel_title", "transcript_md"]
@@ -287,7 +287,7 @@ class DatabaseManager:
                 video_id, channel_title, title, url, published_at,
                 summary_md, transcript_path
             FROM episodes
-            WHERE summary_created_at >= NOW() - INTERVAL ? DAY
+            WHERE summary_created_at >= NOW() - INTERVAL '1 day' * $1
             ORDER BY channel_title, COALESCE(published_at, fetched_at) DESC
         """, [days]).fetchall()
 
@@ -326,9 +326,9 @@ class DatabaseManager:
 
         self.connection.execute("""
             UPDATE episodes SET
-                transcript_on_disk = ?,
-                updated_at = ?
-            WHERE video_id = ?
+                transcript_on_disk = $1,
+                updated_at = $2
+            WHERE video_id = $3
         """, [on_disk, format_timestamp(), video_id])
 
         logger.debug(f"Transcript on_disk flag set to {on_disk} for {video_id}")

@@ -1,0 +1,146 @@
+Your Weekly Podcast Digest (2025-10-12 – 2025-10-19)
+${'=' * title|length}
+
+
+
+The AI Daily Brief: Artificial Intelligence News
+------------------------------------------------
+
+
+Title: Business Model Questions for OpenAI and Anthropic
+URL: https://www.youtube.com/watch?v=5LimGZyd2Q0
+Transcript: data/transcripts/5LimGZyd2Q0_Business_Model_Questions_for_OpenAI_and_Anthropic.md
+
+Summary:
+## Podcast Summary: AI Revenue Growth & OpenAI’s Strategy
+
+### 1. Overview
+This podcast episode dissects the explosive revenue growth of AI model providers, OpenAI and Anthropic, highlighting the key trends shaping the industry’s future. The core discussion centers around the question of whether thi...
+
+---
+
+
+Title: Maybe AI Will Cure Cancer After All
+URL: https://www.youtube.com/watch?v=UrnmWFfp9X8
+Transcript: data/transcripts/UrnmWFfp9X8_Maybe_AI_Will_Cure_Cancer_After_All.md
+
+Summary:
+## Podcast Summary: AI & Cancer Discovery
+
+### 1. Overview
+This episode of the AI Daily Brief explores a significant and quietly groundbreaking advancement: Google’s Synindar Pachai team’s discovery of a novel cancer therapeutic pathway using the C2Scale 27B foundation model. Initially met with skep...
+
+---
+
+
+Title: The Next AI Platform Isn’t a Model — It’s Your Context
+URL: https://www.youtube.com/watch?v=Hkdi-zXMZGo
+Transcript: data/transcripts/Hkdi-zXMZGo_The_Next_AI_Platform_Isn_t_a_Model___It_s_Your_Context.md
+
+Summary:
+## Podcast Summary: AI Daily Brief - Context is the New Battleground
+
+### 1. Overview
+This episode of the AI Daily Brief explores the shifting landscape of AI platform dominance, arguing that the next major competition in 2026 will center not on the most powerful AI models themselves, but rather on ...
+
+---
+
+
+Title: These Are the Jobs People Actually WANT AI to Automate
+URL: https://www.youtube.com/watch?v=lDZLs-7uxH4
+Transcript: data/transcripts/lDZLs-7uxH4_These_Are_the_Jobs_People_Actually_WANT_AI_to_Automate.md
+
+Summary:
+## Podcast Summary: AI’s Moral Compass – Where Do We Draw the Line?
+
+### 1. Overview
+This podcast episode delves into a new Harvard Business School study examining public attitudes towards AI automation across various occupations. It challenges the simplistic “AI will take all our jobs” narrative by...
+
+---
+
+
+Title: What 1,000+ Executives Say About AI Agents
+URL: https://www.youtube.com/watch?v=nDDWWCqnR60
+Transcript: data/transcripts/nDDWWCqnR60_What_1_000__Executives_Say_About_AI_Agents.md
+
+Summary:
+## Podcast Summary: AI Agents in the Enterprise
+
+### 1. Overview
+
+This episode of the AI Daily Brief explores the current state of AI agent adoption within businesses, drawing on insights from over a thousand executive interviews conducted by Super Intelligent. The core focus is on understanding the...
+
+---
+
+
+Title: Why the Future of AI Has a Body
+URL: https://www.youtube.com/watch?v=nnG5VVy_NxI
+Transcript: data/transcripts/nnG5VVy_NxI_Why_the_Future_of_AI_Has_a_Body.md
+
+Summary:
+## Podcast Summary: The State of Robotics in the US
+
+### 1. Overview
+This podcast episode delves into the rapidly evolving landscape of robotics in the United States, particularly focusing on the significant advancements driven by companies like Figure AI. The core theme is the increasing trajectory...
+
+---
+
+
+Title: Sora 2 Prompting Guide
+URL: https://www.youtube.com/watch?v=qFFRiUFzOGo
+Transcript: data/transcripts/qFFRiUFzOGo_Sora_2_Prompting_Guide.md
+
+Summary:
+## Podcast Summary: Sora 2 Prompting Guide
+
+### 1. Overview
+This episode focuses on effectively utilizing OpenAI’s Sora 2 platform through a detailed prompting guide. The core aim is to provide listeners with actionable techniques to maximize the AI’s creative potential in generating videos. The dis...
+
+---
+
+
+Title: 5 Reasons AI is A Bubble (And 5 It's Not)
+URL: https://www.youtube.com/watch?v=hQGsLHr2JyE
+Transcript: data/transcripts/hQGsLHr2JyE_5_Reasons_AI_is_A_Bubble__And_5_It_s_Not_.md
+
+Summary:
+## Podcast Summary: AI Bubble Revisited
+
+### 1. Overview
+This episode delves back into the persistent debate surrounding an “AI bubble,” revisiting concerns raised since the late 2022 emergence of generative AI, particularly following Josh Brown’s initial warnings. The discussion centers on recent r...
+
+---
+
+
+Title: Why OpenAI's AMD Deal Could Be Bigger News than DevDay
+URL: https://www.youtube.com/watch?v=mgEnFOHmuO0
+Transcript: data/transcripts/mgEnFOHmuO0_Why_OpenAI_s_AMD_Deal_Could_Be_Bigger_News_than_DevDay.md
+
+Summary:
+## Podcast Summary: OpenAI & AMD Deal – A Bubble Brew?
+
+### 1. Overview
+
+This episode of the AI Daily Brief dives into the massive new deal between OpenAI and AMD, examining its implications for both companies and the broader AI landscape. The core focus is on the unprecedented scale of the deal – a...
+
+---
+
+
+Title: OpenAI DevDay 2025: Did OpenAI Just Kill A Bunch of Agent Startups?
+URL: https://www.youtube.com/watch?v=EGgLgmoRZQw
+Transcript: data/transcripts/EGgLgmoRZQw_OpenAI_DevDay_2025__Did_OpenAI_Just_Kill_A_Bunch_of_Agent_Startups_.md
+
+Summary:
+## Podcast Summary: OpenAI DevDay Rapid Reaction
+
+### 1. Overview
+
+This rapid reaction podcast dissects OpenAI’s Developer Day announcements, primarily focusing on the unveiling of new tools designed to enhance AI agent development and interaction. The core theme is OpenAI’s push to make AI agents m...
+
+---
+
+
+
+
+---
+This digest was automatically generated by DuckDB Broadcast Briefs
