@@ -154,9 +154,11 @@ class YouTubeClient:
         for channel in self.config.channels:
             # If playlist_id is provided, fetch from playlist directly
             if channel.playlist_id:
-                logger.info(f"Fetching episodes from playlist: {channel.name} ({channel.playlist_id})")
+                # Clean up playlist_id: remove &si=xxx tracking parameter
+                clean_playlist_id = channel.playlist_id.split("&")[0]
+                logger.info(f"Fetching episodes from playlist: {channel.name} ({clean_playlist_id})")
                 episodes = self.get_playlist_videos(
-                    channel.playlist_id,
+                    clean_playlist_id,
                     self.config.fetch.max_per_channel
                 )
             # Otherwise fetch from channel uploads

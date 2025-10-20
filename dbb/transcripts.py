@@ -175,11 +175,23 @@ class YouTubeTranscriptAPIProvider(TranscriptProvider):
             raise TranscriptUnavailableError("youtube-transcript-api provider disabled")
 
         try:
-            languages = self.config.youtube_transcript_api.get("languages", ["en"]) if hasattr(self.config, 'youtube_transcript_api') else ["en"]
+            # Extract languages list from config
+            languages = ["en"]
+            if hasattr(self.config, 'languages') and self.config.languages:
+                languages = self.config.languages
 
-            transcript_dict = YouTubeTranscriptApi.get_transcript(video_id, languages=languages)
-            formatter = TextFormatter()
-            transcript = formatter.format_transcript(transcript_dict)
+            # Use the newer API: create instance and call fetch()
+            api = YouTubeTranscriptApi()
+            transcript_list = api.fetch(video_id, languages=languages)
+
+            # Convert to text format
+            if isinstance(transcript_list, list):
+                # If it returns a list of dicts with 'text' field
+                transcript = " ".join([item.get("text", "") for item in transcript_list])
+            else:
+                # If it returns a FetchedTranscript object, format it
+                formatter = TextFormatter()
+                transcript = formatter.format_transcript(transcript_list)
 
             if not transcript:
                 raise TranscriptUnavailableError("youtube-transcript-api returned empty transcript")
